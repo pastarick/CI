@@ -1,6 +1,4 @@
-# Copyright © 2021 Giovanni Squillero <squillero@polito.it>
-# Free for personal or classroom use; see 'LICENCE.md' for details.
-# https://github.com/squillero/computational-intelligence
+# Riccardo Sepe - 287760
 
 import logging
 from math import sqrt
