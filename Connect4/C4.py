@@ -69,7 +69,6 @@ def print_board(board):
     """
     This function just prints the human-readable version of the board, i.e. with the downward oriented gravity
     """
-    # print(np.rot90(board))
     b = np.rot90(board)
     for i in range(COLUMN_HEIGHT):
         for j in range(NUM_COLUMNS):
@@ -181,10 +180,10 @@ def utility(board, cell):
 
 
 def minmax(board, move, depth, player, alpha, beta):
-    if is_terminal(board) or depth == 0:
+    if move is not None and (is_terminal(board) or depth) == 0:
         (index,) = [i for i, v in np.ndenumerate(board[move]) if v != 0][-1]
         cell = (move, index)
-        return move, player * utility(board, cell)
+        return move, int(player * utility(board, cell))
 
     if player == AI_PLAYER:
         v1 = (None, np.inf)
@@ -216,9 +215,10 @@ def minmax(board, move, depth, player, alpha, beta):
     return v1
 
 
-def ai_move(board, user_move):
+def ai_move(board):
     depth = 3
-    return minmax(board, user_move, depth, USER_PLAYER, -np.inf, np.inf)[0]
+    # in the first level of recursion, the move parameter of minmax won't be used
+    return minmax(board, None, depth, AI_PLAYER, -np.inf, np.inf)[0]
 
 
 def main():
@@ -247,24 +247,21 @@ def main():
     player = -player
     while True:
         if player == AI_PLAYER:
-            ply = minmax(board, 3, 3, player, -np.inf, np.inf)
-            print(f"AI playing column {ply}...")
-            play(board, ply[0], player)
+            ply = ai_move(board)
+            print(f"AI playing column {ply+1}...")
+            play(board, ply, player)
             print_board(board)
             if four_in_a_row(board, player):
                 print(f"AI won the game.")
                 break
         else:
             ply = int(input("Please chose the column of your move: "))-1
-            print(f"You played column {ply}...")
+            print(f"You played column {ply+1}.")
             play(board, ply, player)
             print_board(board)
             if four_in_a_row(board, player):
                 print(f"You won the game!")
                 break
-
-
-
 
         player = -player
 
