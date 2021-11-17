@@ -7,7 +7,7 @@ NUM_COLUMNS = 7
 COLUMN_HEIGHT = 6
 FOUR = 4
 
-FOUR_BY_FOUR = np.array([[16, 2, 3, 13],
+MAGIC_SQUARE = np.array([[16, 2, 3, 13],
                          [5, 11, 10, 8],
                          [9, 7, 6, 12],
                          [4, 14, 15, 1]])
@@ -127,11 +127,10 @@ def utility(board, cell):
 
     m = 0
     while i <= NUM_COLUMNS-FOUR:
-    # for i, j in product(range(NUM_COLUMNS-FOUR+1), range(highest_row+1)):
         sub = tmp_board[i:i+4, j:j+4]
 
-        # tmp_sub is the result of applying the FOUR_BY_FOUR mask to sub
-        tmp_sub = sub * FOUR_BY_FOUR
+        # tmp_sub is the result of applying the MAGIC_SQUARE mask to sub
+        tmp_sub = sub * MAGIC_SQUARE
 
         x = cell[0] - i
         # y = cell[1] - j
