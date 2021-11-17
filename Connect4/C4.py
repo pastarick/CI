@@ -12,6 +12,9 @@ MAGIC_SQUARE = np.array([[16, 2, 3, 13],
                          [9, 7, 6, 12],
                          [4, 14, 15, 1]])
 
+AI_PLAYER = -1
+USER_PLAYER = 1
+
 
 def valid_moves(board):
     """Returns columns where a disc may be played"""
@@ -66,7 +69,26 @@ def print_board(board):
     """
     This function just prints the human-readable version of the board, i.e. with the downward oriented gravity
     """
-    print(np.rot90(board))
+    # print(np.rot90(board))
+    b = np.rot90(board)
+    for i in range(COLUMN_HEIGHT):
+        for j in range(NUM_COLUMNS):
+            if b[i][j] == USER_PLAYER:
+                print("| ● ", end='')
+            elif b[i][j] == AI_PLAYER:
+                print("| ○ ", end='')
+            else:
+                print("|   ", end='')
+        print('|')
+
+    print("-", end='')
+    for i in range(NUM_COLUMNS):
+        print("-"*4, end='')
+    print('')
+
+    for i in range(NUM_COLUMNS):
+        print(f"| {i+1} ", end='')
+    print('|')
 
 
 def best_move(board):
@@ -108,7 +130,7 @@ def eval_board(board, player):
 
 
 def is_terminal(board):
-    return four_in_a_row(board, 1) or four_in_a_row(board, -1) or not valid_moves(board)
+    return four_in_a_row(board, USER_PLAYER) or four_in_a_row(board, AI_PLAYER) or not valid_moves(board)
 
 
 def utility(board, cell):
@@ -135,21 +157,21 @@ def utility(board, cell):
         x = cell[0] - i
         # y = cell[1] - j
 
-        if player == 1:
+        if player == USER_PLAYER:
             m = max(m, np.sum(tmp_sub[x, :]), np.sum(tmp_sub[:, y]))
         else:
             m = min(m, np.sum(tmp_sub[x, :]), np.sum(tmp_sub[:, y]))
 
         # if cell is on the diagonal, count also the diagonal
         if x == y:
-            if player == 1:
+            if player == USER_PLAYER:
                 m = max(m, np.trace(tmp_sub))
             else:
                 m = min(m, np.trace(tmp_sub))
 
         # if cell is on the antidiagonal (even size -> cell cannot be on both diag and antidiag)
         if x+y == FOUR-1:
-            if player == 1:
+            if player == USER_PLAYER:
                 m = max(m, np.trace(np.flip(tmp_sub)))
             else:
                 m = min(m, np.trace(np.flip(tmp_sub)))
@@ -163,7 +185,8 @@ def minmax(board, move, depth, player, alpha, beta):
         (index,) = [i for i, v in np.ndenumerate(board[move]) if v != 0][-1]
         cell = (move, index)
         return move, player * utility(board, cell)
-    if player == -1:
+
+    if player == AI_PLAYER:
         v1 = (None, np.inf)
         for m in valid_moves(board):
             # alpha = min(alpha, minmax(board, m, depth-1, -player))
@@ -193,6 +216,11 @@ def minmax(board, move, depth, player, alpha, beta):
     return v1
 
 
+def ai_move(board, user_move):
+    depth = 3
+    return minmax(board, user_move, depth, USER_PLAYER, -np.inf, np.inf)[0]
+
+
 def main():
     board = np.zeros((NUM_COLUMNS, COLUMN_HEIGHT), dtype=np.byte)
     # player = np.random.choice([1, -1])
@@ -210,25 +238,33 @@ def main():
     #     best_move(board)
 
     player = -1
-    play(board, 3, player)
-    ply = minmax(board, 3, 3, -player, -np.inf, np.inf)
-    print(f"Player {player} playing move {ply}...")
+    ply = 3
+    play(board, ply, player)
+    # ply = minmax(board, 3, 3, -player, -np.inf, np.inf)
+    print(f"AI playing move {ply}...")
+    print_board(board)
 
     player = -player
     while True:
-        if player == -1:
+        if player == AI_PLAYER:
             ply = minmax(board, 3, 3, player, -np.inf, np.inf)
-            print(f"Player {player} playing move {ply}...")
+            print(f"AI playing column {ply}...")
             play(board, ply[0], player)
+            print_board(board)
+            if four_in_a_row(board, player):
+                print(f"AI won the game.")
+                break
         else:
-            ply = int(input("Please chose the column of your move: "))
-            print(f"Player {player} playing move {ply}...")
+            ply = int(input("Please chose the column of your move: "))-1
+            print(f"You played column {ply}...")
             play(board, ply, player)
+            print_board(board)
+            if four_in_a_row(board, player):
+                print(f"You won the game!")
+                break
 
-        print_board(board)
-        if four_in_a_row(board, player):
-            print(f"Player {player} won the game.")
-            break
+
+
 
         player = -player
 
