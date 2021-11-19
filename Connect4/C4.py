@@ -16,11 +16,12 @@ AI_PLAYER = -1
 USER_PLAYER = 1
 
 EVALUATION_TABLE = np.rot90(np.array([[3, 4, 5, 7, 5, 4, 3],
-                                [4, 6, 8, 10, 8, 6, 4],
-                                [5, 8, 11, 13, 11, 8, 5],
-                                [5, 8, 11, 13, 11, 8, 5],
-                                [4, 6, 8, 10, 8, 6, 4],
-                                [3, 4, 5, 7, 5, 4, 3]]), 3)
+                                      [4, 6, 8, 10, 8, 6, 4],
+                                      [5, 8, 11, 13, 11, 8, 5],
+                                      [5, 8, 11, 13, 11, 8, 5],
+                                      [4, 6, 8, 10, 8, 6, 4],
+                                      [3, 4, 5, 7, 5, 4, 3]]), 3)
+
 
 # AI_TABLE = USER_TABLE.copy()
 
@@ -156,7 +157,7 @@ def utility(board, cell):
     y = cell[1] - j
 
     m = 0
-    while i <= NUM_COLUMNS - FOUR:
+    while i <= NUM_COLUMNS - FOUR:  # at most 4 iterations
         sub = tmp_board[i:i + 4, j:j + 4]
 
         # tmp_sub is the result of applying the MAGIC_SQUARE mask to sub
@@ -165,6 +166,7 @@ def utility(board, cell):
         x = cell[0] - i
         # y = cell[1] - j
 
+        # horizontal & vertical check
         if player == USER_PLAYER:
             m = max(m, np.sum(tmp_sub[x, :]), np.sum(tmp_sub[:, y]))
         else:
@@ -194,30 +196,90 @@ def num_covered(board, cell, player):
     y = cell[1]
 
     # horizontal
-    i1 = max(0, y-FOUR+1)
-    i2 = min(NUM_COLUMNS, y+FOUR)
+    i1 = max(0, y - FOUR + 1)
+    i2 = min(NUM_COLUMNS, y + FOUR)
     c += np.count_nonzero(board[x, i1:i2] == -player)
 
     # vertical
-    j1 = max(0, x-FOUR+1)
-    j2 = min(COLUMN_HEIGHT, x+FOUR)
+    j1 = max(0, x - FOUR + 1)
+    j2 = min(COLUMN_HEIGHT, x + FOUR)
     c += np.count_nonzero(board[i1:i2, y] == -player)
 
     # diag1
 
 
-def utility2(board):
-    # player = board[cell[0], cell[1]]
-    # vedo se nelle celle coperte da cell c'è -player
+def count_vec(vec, player):
+    # len(vec) is always 3
+    if vec[0] == 0:
+        return 0
 
-    return int(np.sum(board * EVALUATION_TABLE))
+    k = 1
+    while k < 3 and vec[k] == vec[0]:
+        k += 1
+    if vec[0] == player:
+        k += 1
+    else:
+        k += 0.5
+
+    return k
+
+
+def cell_value(board, cell):
+    # OBS: IT MIGHT BE USEFUL TO ALWAYS HAVE THIS BOARD (REMEMBERING THE OFFSET FOR INDICES)
+    tmp_board = np.pad(board, ((3, 3), (3, 3)), mode='constant', constant_values=(0, 0))
+    # with this padding, I avoid controls on corner values
+
+    i = cell[0]
+    j = cell[1]
+
+    player = board[i, j]
+
+    i += 3
+    j += 3
+
+    value = -1
+    base_value = EVALUATION_TABLE[cell[0], cell[1]]
+
+    # top-left
+    vec = np.flip(np.diagonal(tmp_board[i - 3:i, j - 3:j]))
+    value = max(value, count_vec(vec, player))
+
+    # top
+    vec = np.flip(tmp_board[i - 3:i, j])
+    value = max(value, count_vec(vec, player))
+
+    # top-right
+    vec = np.diagonal(np.flip(tmp_board[i - 3:i, j + 1:j + 4]))
+    value = max(value, count_vec(vec, player))
+
+    # right
+    vec = tmp_board[i, j + 1:j + 4]
+    value = max(value, count_vec(vec, player))
+
+    # down-right
+    vec = np.diagonal(tmp_board[i + 1:i + 4, j + 1:j + 4])
+    value = max(value, count_vec(vec, player))
+
+    # down
+    vec = tmp_board[i + 1:i + 4, j]
+    value = max(value, count_vec(vec, player))
+
+    # down-left
+    vec = np.diagonal(np.flip(tmp_board[i + 1:i + 4, j - 3:j]))
+    value = max(value, count_vec(vec, player))
+
+    # left
+    vec = np.flip(tmp_board[i, j - 3:j])
+    value = max(value, count_vec(vec, player))
+
+    return base_value + value
 
 
 def minmax(board, move, depth, player, alpha, beta):
     if move is not None and (is_terminal(board) or depth == 0):
         (index,) = [i for i, v in np.ndenumerate(board[move]) if v != 0][-1]
         cell = (move, index)
-        return move, utility2(board)  # int(player * utility(board, cell))
+        return move, cell_value(board, cell)  # int(player * utility(board, cell))
 
     # print(f"depth = {depth}")
     if player == AI_PLAYER:
@@ -225,7 +287,7 @@ def minmax(board, move, depth, player, alpha, beta):
         for m in valid_moves(board):
             # alpha = min(alpha, minmax(board, m, depth-1, -player))
             play(board, m, player)
-            v2 = minmax(board, m, depth-1, -player, alpha, beta)
+            v2 = minmax(board, m, depth - 1, -player, alpha, beta)
             take_back(board, m)
             if v2[1] < v1[1]:
                 v1 = v2
@@ -251,7 +313,7 @@ def minmax(board, move, depth, player, alpha, beta):
 
 
 def ai_move(board):
-    depth = 3
+    depth = 5
     # in the first level of recursion, the move parameter of minmax won't be used
     return minmax(board, None, depth, AI_PLAYER, -np.inf, np.inf)[0]
 
