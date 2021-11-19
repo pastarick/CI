@@ -14,16 +14,17 @@ class Connect4:
 
     f = lambda k: max(k)
 
-    def __init__(self):
+    def __init__(self, num_players):
         self.__board = np.zeros((self.__NUM_COLUMNS, self.__COLUMN_HEIGHT), dtype=np.byte)
         self.__player1 = 1
         self.__player2 = -1
+        self.__num_players = num_players
 
-    def play_game(self, num_players):
+    def play_game(self):
         """
         Only exposed method, creates and handles a game
         """
-        if num_players == 1:
+        if self.__num_players == 1:
             ai = self.__player2
             player = ai
             ply = 3
@@ -231,22 +232,25 @@ class Connect4:
         """
         This function just prints the human-readable version of the board, i.e. with the downward oriented gravity
         """
+        rep = ""
         b = np.rot90(self.__board)
         for i in range(self.__COLUMN_HEIGHT):
             for j in range(self.__NUM_COLUMNS):
                 if b[i][j] == self.__player1:
-                    print("| ● ", end='')
+                    rep += "| ● "
                 elif b[i][j] == self.__player2:
-                    print("| ○ ", end='')
+                    rep += "| ○ "
                 else:
-                    print("|   ", end='')
-            print('|')
+                    rep += "|   "
+            rep += '|\n'
 
-        print("-", end='')
+        rep += "-"
         for i in range(self.__NUM_COLUMNS):
-            print("-" * 4, end='')
-        print('')
+            rep += "----"
+        rep += '\n'
 
         for i in range(self.__NUM_COLUMNS):
-            print(f"| {i + 1} ", end='')
-        print('|')
+            rep += f"| {i + 1} "
+        rep += '|'
+
+        return rep
