@@ -11,8 +11,27 @@ class Connect4:
                                             [5, 8, 11, 13, 11, 8, 5],
                                             [4, 6, 8, 10, 8, 6, 4],
                                             [3, 4, 5, 7, 5, 4, 3]]), 3)
+    __DIRECTIONS = {
+        "tl": (-1, -1),
+        "t":  (-1, 0),
+        "tr": (-1, 1),
+        "r":  (0, 1),  # OBS: right direction should never be useful
+        "dr": (1, 1),
+        "d":  (1, 0),
+        "dl": (1, -1),
+        "l":  (0, -1),
+    }
 
-    f = lambda k: max(k)
+    __DIRECTIONS_ARRAYS = {
+        "tl": lambda i, j, board: np.flip(np.diagonal(board[i - 3:i, j - 3:j])),
+        "t":  lambda i, j, board: np.flip(board[i - 3:i, j]),
+        "tr": lambda i, j, board: np.diagonal(np.flip(board[i - 3:i, j + 1:j + 4], 0)),
+        "r":  lambda i, j, board: board[i, j + 1:j + 4],  # OBS: right direction should never be useful
+        "dr": lambda i, j, board: np.diagonal(board[i + 1:i + 4, j + 1:j + 4]),
+        "d":  lambda i, j, board: board[i + 1:i + 4, j],
+        "dl": lambda i, j, board: np.diagonal(np.flip(board[i + 1:i + 4, j - 3:j], 1)),
+        "l":  lambda i, j, board: np.flip(board[i, j - 3:j]),
+    }
 
     def __init__(self, num_players):
         self.__board = np.zeros((self.__NUM_COLUMNS, self.__COLUMN_HEIGHT), dtype=np.byte)
@@ -37,8 +56,8 @@ class Connect4:
                 if player == ai:
 
                     ply = self.__ai_move()
-                    print(f"AI playing column {ply + 1}...")
-                    self.__play(ply, player)
+                    print(f"AI playing column ({ply[0] + 1}, {ply[1]})...")
+                    self.__play(ply[0], player)
                     print(self)
                     if self.__four_in_a_row(player):
                         print(f"AI won the game.")
@@ -106,6 +125,10 @@ class Connect4:
                or self.__four_in_a_row(self.__player2) \
                or not self.__valid_moves()
 
+    def __valid_directions(self, tmp_board, i, j):
+        return [d for d in self.__DIRECTIONS.keys()
+                if tmp_board[i+self.__DIRECTIONS[d][0], j+self.__DIRECTIONS[d][1]] != 0]
+
     """
     Utility function section
     """
@@ -124,12 +147,12 @@ class Connect4:
         else:
             k += 0.5
 
+        if k == 4:
+            return 25
         return k
 
     def __cell_value(self, cell):
-        # OBS: IT MIGHT BE USEFUL TO ALWAYS HAVE THIS BOARD (REMEMBERING THE OFFSET FOR INDICES)
         tmp_board = np.pad(self.__board, ((3, 3), (3, 3)), mode='constant', constant_values=(0, 0))
-        # with this padding, I avoid controls on corner values
 
         i = cell[0]
         j = cell[1]
@@ -139,51 +162,22 @@ class Connect4:
         i += 3
         j += 3
 
-        value = -1
-        base_value = self.__EVALUATION_TABLE[cell[0], cell[1]]
+        value = 0
+        # value = 0  # can init to 0 because value is always >= 0
+        for d in self.__valid_directions(tmp_board, i, j):
+            # value = max(value, self.__count_vec(self.__DIRECTIONS_ARRAYS[d](i, j, tmp_board), player))
+            value += self.__count_vec(self.__DIRECTIONS_ARRAYS[d](i, j, tmp_board), player)
 
-        # top-left
-        vec = np.flip(np.diagonal(tmp_board[i - 3:i, j - 3:j]))
-        value = max(value, self.__count_vec(vec, player))
-
-        # top
-        vec = np.flip(tmp_board[i - 3:i, j])
-        value = max(value, self.__count_vec(vec, player))
-
-        # top-right
-        vec = np.diagonal(np.flip(tmp_board[i - 3:i, j + 1:j + 4]))
-        value = max(value, self.__count_vec(vec, player))
-
-        # right
-        vec = tmp_board[i, j + 1:j + 4]
-        value = max(value, self.__count_vec(vec, player))
-
-        # down-right
-        vec = np.diagonal(tmp_board[i + 1:i + 4, j + 1:j + 4])
-        value = max(value, self.__count_vec(vec, player))
-
-        # down
-        vec = tmp_board[i + 1:i + 4, j]
-        value = max(value, self.__count_vec(vec, player))
-
-        # down-left
-        vec = np.diagonal(np.flip(tmp_board[i + 1:i + 4, j - 3:j]))
-        value = max(value, self.__count_vec(vec, player))
-
-        # left
-        vec = np.flip(tmp_board[i, j - 3:j])
-        value = max(value, self.__count_vec(vec, player))
-
-        return base_value + value
+        return value  # + self.__EVALUATION_TABLE[i-3, j-3]
 
     """
     MinMax algorithm
     """
 
     def __ai_move(self):
-        depth = 5
+        depth = 2
         # in the first level of recursion, the move parameter of minmax won't be used
-        return self.__minmax(None, depth, self.__player2, -np.inf, np.inf)[0]
+        return self.__minmax(None, depth, self.__player2, -np.inf, np.inf)
 
     def __minmax(self, move, depth, player, alpha, beta):
         """
@@ -192,7 +186,9 @@ class Connect4:
         if move is not None and (self.__is_terminal() or depth == 0):
             (index,) = [i for i, v in np.ndenumerate(self.__board[move]) if v != 0][-1]
             cell = (move, index)
-            return move, self.__cell_value(cell)  # int(player * utility(board, cell))
+            # if current player is -1, this means that the top-of-the-stack call was made by player 1
+            # -> return score with opposite sign
+            return move, -player * self.__cell_value(cell)  # int(player * utility(board, cell))
 
         # print(f"depth = {depth}")
         if player == self.__player2:
@@ -200,27 +196,27 @@ class Connect4:
             for m in self.__valid_moves():
                 # alpha = min(alpha, minmax(board, m, depth-1, -player))
                 self.__play(m, player)
-                v2 = self.__minmax(m, depth - 1, -player, alpha, beta)
+                _, v2 = self.__minmax(m, depth - 1, -player, alpha, beta)
                 self.__take_back(m)
-                if v2[1] < v1[1]:
-                    v1 = v2
-                if v2[1] <= alpha:
+                if v2 < v1[1]:
+                    v1 = m, v2
+                if v2 <= alpha:
                     return v1
-                if v2[1] < beta:
-                    beta = v1[1]
+                if v2 < beta:
+                    beta = v2
         else:
             v1 = (None, -np.inf)
             for m in self.__valid_moves():
                 # alpha = max(alpha, minmax(board, m, depth-1, -player))
                 self.__play(m, player)
-                v2 = self.__minmax(m, depth - 1, -player, alpha, beta)
+                _, v2 = self.__minmax(m, depth - 1, -player, alpha, beta)
                 self.__take_back(m)
-                if v2[1] > v1[1]:
-                    v1 = v2
-                if v2[1] >= beta:
+                if v2 > v1[1]:
+                    v1 = m, v2
+                if v2 >= beta:
                     return v1
-                if v2[1] > alpha:
-                    alpha = v2[1]
+                if v2 > alpha:
+                    alpha = v2
 
         return v1
 
