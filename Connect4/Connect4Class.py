@@ -2,16 +2,13 @@ import numpy as np
 
 
 class Connect4:
+    """
+    This class encapsulates a connect-4 minmax solver (against user or possibly against itself)
+    """
     __NUM_COLUMNS = 7
     __COLUMN_HEIGHT = 6
     __FOUR = 4
-    __EVALUATION_TABLE = np.rot90(np.array([[3, 4, 5, 7, 5, 4, 3],
-                                            [4, 6, 8, 10, 8, 6, 4],
-                                            [5, 8, 11, 13, 11, 8, 5],
-                                            [5, 8, 11, 13, 11, 8, 5],
-                                            [4, 6, 8, 10, 8, 6, 4],
-                                            [3, 4, 5, 7, 5, 4, 3]]), 3)
-    
+
     __EVALUATION_GRID = {
         (0, 0, 0):    (0, 0),
         (0, 0, 1):    (1, 2),
@@ -89,7 +86,7 @@ class Connect4:
             print(self)
 
             player = -player
-            depth = 4
+            depth = 1
             while True:
                 if player == ai:
 
@@ -112,7 +109,7 @@ class Connect4:
                 player = -player
                 # if depth < 4:
                 #     depth += 1
-                # depth = 2
+                depth = 2
 
             print("Terminating game")
 

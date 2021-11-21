@@ -1,5 +1,5 @@
 import numpy as np
-from collections import deque, Counter
+from collections import Counter
 import logging
 from itertools import product
 
