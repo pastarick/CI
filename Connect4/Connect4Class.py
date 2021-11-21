@@ -13,7 +13,7 @@ class Connect4:
                                             [3, 4, 5, 7, 5, 4, 3]]), 3)
     
     __EVALUATION_GRID = {
-        # (0, 0, 0):    (0, 0),
+        (0, 0, 0):    (0, 0),
         (0, 0, 1):    (1, 2),
         (0, 0, -1):   (1, 2),
         (0, 1, 0):    (1, 1),
@@ -89,10 +89,11 @@ class Connect4:
             print(self)
 
             player = -player
+            depth = 4
             while True:
                 if player == ai:
 
-                    ply = self.__ai_move()
+                    ply = self.__ai_move(depth)
                     print(f"AI playing column ({ply[0] + 1}, {ply[1]})...")
                     self.__play(ply[0], player)
                     print(self)
@@ -109,6 +110,9 @@ class Connect4:
                         break
 
                 player = -player
+                # if depth < 4:
+                #     depth += 1
+                # depth = 2
 
             print("Terminating game")
 
@@ -188,14 +192,12 @@ class Connect4:
 
     def __count_vec2(self, vec, player):
         # len(vec) is always 3
-
-        vec = (v if v != -2 else 0 for v in vec)
-
+        vec = [v if v != -2 else 0 for v in vec]
         score, p = self.__EVALUATION_GRID[tuple(vec)]
 
-        if p == player:
+        if vec[p] == player:
             score += 1
-        else:
+        elif vec[p] == -player:
             score += 0.5
 
         return score, p
@@ -220,13 +222,13 @@ class Connect4:
             # value = max(value, self.__count_vec(self.__DIRECTIONS_ARRAYS[d](i, j, tmp_board), player))
             # v is the tuple (score, player of that array)
             v = self.__count_vec2(self.__DIRECTIONS_ARRAYS[d](i, j, tmp_board), player)
-            if v == 4:
+            if v[0] == 4:
                 return 25
             # value += v
             values[d] = v
 
         value = values["l"][0]
-        for d, od in self.__OPPOSITE_DIRECTIONS:
+        for d, od in self.__OPPOSITE_DIRECTIONS.items():
             if player == values[d][1] == values[od][1]:
                 if (values[d][0] + values[od][0] - 1) >= 4:
                     return 25
@@ -240,8 +242,7 @@ class Connect4:
     MinMax algorithm
     """
 
-    def __ai_move(self):
-        depth = 4
+    def __ai_move(self, depth):
         # in the first level of recursion, the move parameter of minmax won't be used
         return self.__minmax(None, depth, self.__player2, -np.inf, np.inf)
 
