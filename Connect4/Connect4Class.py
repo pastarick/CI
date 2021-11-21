@@ -11,22 +11,59 @@ class Connect4:
                                             [5, 8, 11, 13, 11, 8, 5],
                                             [4, 6, 8, 10, 8, 6, 4],
                                             [3, 4, 5, 7, 5, 4, 3]]), 3)
+    
+    __EVALUATION_GRID = {
+        # (0, 0, 0):    (0, 0),
+        (0, 0, 1):    (1, 2),
+        (0, 0, -1):   (1, 2),
+        (0, 1, 0):    (1, 1),
+        (0, 1, 1):    (2, 1),
+        (0, 1, -1):   (1, 1),
+        (0, -1, 0):   (1, 1),
+        (0, -1, 1):   (1, 1),
+        (0, -1, -1):  (2, 1),
+        (1, 0, 0):    (1, 0),
+        (1, 0, 1):    (2, 0),
+        (1, 0, -1):   (1, 0),
+        (1, 1, 0):    (2, 0),
+        (1, 1, 1):    (3, 0),
+        (1, 1, -1):   (2, 0),
+        (1, -1, 0):   (1, 0),
+        (1, -1, 1):   (1, 0),
+        (1, -1, -1):  (1, 0),
+        (-1, 0, 0):   (1, 0),
+        (-1, 0, 1):   (1, 0),
+        (-1, 0, -1):  (1, 0),
+        (-1, 1, 0):   (1, 0),
+        (-1, 1, 1):   (1, 0),
+        (-1, 1, -1):  (1, 0),
+        (-1, -1, 0):  (2, 0),
+        (-1, -1, 1):  (2, 0),
+        (-1, -1, -1): (3, 0),
+    }
+    
     __DIRECTIONS = {
         "tl": (-1, -1),
         "t":  (-1, 0),
         "tr": (-1, 1),
-        "r":  (0, 1),  # OBS: right direction should never be useful
+        # "r":  (0, 1),  # OBS: right direction should never be useful
         "dr": (1, 1),
         "d":  (1, 0),
         "dl": (1, -1),
         "l":  (0, -1),
     }
 
+    __OPPOSITE_DIRECTIONS = {
+        "tl": "dr",
+        "t":  "d",
+        "tr": "dl",
+    }
+
     __DIRECTIONS_ARRAYS = {
         "tl": lambda i, j, board: np.flip(np.diagonal(board[i - 3:i, j - 3:j])),
         "t":  lambda i, j, board: np.flip(board[i - 3:i, j]),
         "tr": lambda i, j, board: np.diagonal(np.flip(board[i - 3:i, j + 1:j + 4], 0)),
-        "r":  lambda i, j, board: board[i, j + 1:j + 4],  # OBS: right direction should never be useful
+        # "r":  lambda i, j, board: board[i, j + 1:j + 4],  # OBS: right direction should never be useful
         "dr": lambda i, j, board: np.diagonal(board[i + 1:i + 4, j + 1:j + 4]),
         "d":  lambda i, j, board: board[i + 1:i + 4, j],
         "dl": lambda i, j, board: np.diagonal(np.flip(board[i + 1:i + 4, j - 3:j], 1)),
@@ -127,7 +164,7 @@ class Connect4:
 
     def __valid_directions(self, tmp_board, i, j):
         return [d for d in self.__DIRECTIONS.keys()
-                if tmp_board[i+self.__DIRECTIONS[d][0], j+self.__DIRECTIONS[d][1]] != 0]
+                if tmp_board[i+self.__DIRECTIONS[d][0], j+self.__DIRECTIONS[d][1]] != -2]
 
     """
     Utility function section
@@ -147,12 +184,24 @@ class Connect4:
         else:
             k += 0.5
 
-        if k == 4:
-            return 25
         return k
 
+    def __count_vec2(self, vec, player):
+        # len(vec) is always 3
+
+        vec = (v if v != -2 else 0 for v in vec)
+
+        score, p = self.__EVALUATION_GRID[tuple(vec)]
+
+        if p == player:
+            score += 1
+        else:
+            score += 0.5
+
+        return score, p
+
     def __cell_value(self, cell):
-        tmp_board = np.pad(self.__board, ((3, 3), (3, 3)), mode='constant', constant_values=(0, 0))
+        tmp_board = np.pad(self.__board, ((3, 3), (3, 3)), mode='constant', constant_values=(-2, -2))
 
         i = cell[0]
         j = cell[1]
@@ -162,11 +211,28 @@ class Connect4:
         i += 3
         j += 3
 
-        value = 0
+        # value = 0
         # value = 0  # can init to 0 because value is always >= 0
+
+        values = dict.fromkeys(self.__DIRECTIONS.keys(), (0, 0))
+
         for d in self.__valid_directions(tmp_board, i, j):
             # value = max(value, self.__count_vec(self.__DIRECTIONS_ARRAYS[d](i, j, tmp_board), player))
-            value += self.__count_vec(self.__DIRECTIONS_ARRAYS[d](i, j, tmp_board), player)
+            # v is the tuple (score, player of that array)
+            v = self.__count_vec2(self.__DIRECTIONS_ARRAYS[d](i, j, tmp_board), player)
+            if v == 4:
+                return 25
+            # value += v
+            values[d] = v
+
+        value = values["l"][0]
+        for d, od in self.__OPPOSITE_DIRECTIONS:
+            if player == values[d][1] == values[od][1]:
+                if (values[d][0] + values[od][0] - 1) >= 4:
+                    return 25
+                else:
+                    value += values[d][0] + values[od][0] - 1
+            value += values[d][0] + values[od][0]
 
         return value  # + self.__EVALUATION_TABLE[i-3, j-3]
 
@@ -175,7 +241,7 @@ class Connect4:
     """
 
     def __ai_move(self):
-        depth = 2
+        depth = 4
         # in the first level of recursion, the move parameter of minmax won't be used
         return self.__minmax(None, depth, self.__player2, -np.inf, np.inf)
 
