@@ -1,5 +1,5 @@
 import numpy as np
-
+from TreeNode import TreeNode
 
 
 class Connect4:
@@ -73,46 +73,6 @@ class Connect4:
         self.__player1 = 1
         self.__player2 = -1
         self.__num_players = num_players
-
-    def play_game(self):
-        """
-        Only exposed method, creates and handles a game
-        """
-        if self.__num_players == 1:
-            ai = self.__player2
-            player = ai
-            ply = 3
-            print(f"AI playing move {ply}...")
-            self.__play(ply, player)
-            print(self)
-
-            player = -player
-            depth = 1
-            while True:
-                if player == ai:
-
-                    ply = self.__ai_move(depth)
-                    print(f"AI playing column ({ply[0] + 1}, {ply[1]})...")
-                    self.__play(ply[0], player)
-                    print(self)
-                    if self.__four_in_a_row(player):
-                        print(f"AI won the game.")
-                        break
-                else:
-                    ply = int(input("Please chose the column of your move: ")) - 1
-                    print(f"You played column {ply + 1}.")
-                    self.__play(ply, player)
-                    print(self)
-                    if self.__four_in_a_row(player):
-                        print(f"You won the game!")
-                        break
-
-                player = -player
-                # if depth < 4:
-                #     depth += 1
-                depth = 2
-
-            print("Terminating game")
 
     def __valid_moves(self):
         """Returns columns where a disc may be played"""
@@ -240,6 +200,46 @@ class Connect4:
     MinMax algorithm
     """
 
+    def play_game_minmax(self):
+        """
+        Only exposed method, creates and handles a game
+        """
+        if self.__num_players == 1:
+            ai = self.__player2
+            player = ai
+            ply = 3
+            print(f"AI playing move {ply}...")
+            self.__play(ply, player)
+            print(self)
+
+            player = -player
+            depth = 1
+            while True:
+                if player == ai:
+
+                    ply = self.__ai_move(depth)
+                    print(f"AI playing column ({ply[0] + 1}, {ply[1]})...")
+                    self.__play(ply[0], player)
+                    print(self)
+                    if self.__four_in_a_row(player):
+                        print(f"AI won the game.")
+                        break
+                else:
+                    ply = int(input("Please chose the column of your move: ")) - 1
+                    print(f"You played column {ply + 1}.")
+                    self.__play(ply, player)
+                    print(self)
+                    if self.__four_in_a_row(player):
+                        print(f"You won the game!")
+                        break
+
+                player = -player
+                # if depth < 4:
+                #     depth += 1
+                depth = 2
+
+            print("Terminating game")
+
     def __ai_move(self, depth):
         # in the first level of recursion, the move parameter of minmax won't be used
         return self.__minmax(None, depth, self.__player2, -np.inf, np.inf)
@@ -289,8 +289,36 @@ class Connect4:
     Monte Carlo Tree Search
     """
 
+    def play_game_montecarlo(self):
+        if self.__num_players == 1:
+            ai = self.__player2
+            player = ai
+            root = TreeNode(player, parent=None, num_columns=self.__NUM_COLUMNS, column_height=self.__COLUMN_HEIGHT,
+                            four=self.__FOUR, board=self.__board)
 
+            while True:
+                if player == -1:
 
+                    ply = root.next_action()
+                    print(f"AI playing column {ply + 1}...")
+                    self.__play(ply, player)
+                    print(self)
+                    if self.__four_in_a_row(player):
+                        print(f"AI won the game.")
+                        break
+                else:
+                    ply = int(input("Please chose the column of your move: ")) - 1
+                    print(f"You played column {ply + 1}.")
+                    self.__play(ply, player)
+                    print(self)
+                    if self.__four_in_a_row(player):
+                        print(f"You won the game!")
+                        break
+
+                root = root.trim(ply)
+                player = -player
+
+            print("Terminating game")
 
     """
     Representation
