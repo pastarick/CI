@@ -1,6 +1,7 @@
 import numpy as np
 
 
+
 class Connect4:
     """
     This class encapsulates a connect-4 minmax solver (against user or possibly against itself)
@@ -283,6 +284,13 @@ class Connect4:
                     alpha = v2
 
         return v1
+
+    """
+    Monte Carlo Tree Search
+    """
+
+
+
 
     """
     Representation
