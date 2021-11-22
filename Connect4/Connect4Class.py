@@ -195,9 +195,6 @@ class Connect4:
     """
 
     def play_game_minmax(self):
-        """
-        Only exposed method, creates and handles a game
-        """
         if self._num_players == 1:
             ai = self._player2
             player = ai
@@ -287,6 +284,17 @@ class Connect4:
             player = ai
             root = TreeNode(player, parent=None, num_columns=Connect4._NUM_COLUMNS, column_height=Connect4._COLUMN_HEIGHT,
                             four=Connect4._FOUR, board=self._board)
+            ply = 3
+            print(f"AI playing move {ply}...")
+            self._play(ply, player)
+            print(self)
+
+            player = -player
+            ply = Connect4.cleaned_input()
+            print(f"You played column {ply + 1}.")
+            self._play(ply, player)
+            print(self)
+            player = -player
 
             while True:
                 if player == -1:
