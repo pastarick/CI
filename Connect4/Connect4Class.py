@@ -120,6 +120,18 @@ class Connect4:
         )
         )
 
+    @staticmethod
+    def cleaned_input():
+        while True:
+            s = input("Please chose the column of your move: ")
+            if s.isnumeric():
+                if 1 <= int(s) <= Connect4._NUM_COLUMNS:
+                    return int(s)-1
+                else:
+                    print(f"Input column can only be an integer between 1 and {Connect4._NUM_COLUMNS}.")
+            else:
+                print(f"Input column can only be an integer between 1 and {Connect4._NUM_COLUMNS}.")
+
     def _is_terminal(self):
         return self._four_in_a_row(self._player1) \
                or self._four_in_a_row(self._player2) \
@@ -196,18 +208,20 @@ class Connect4:
 
             player = -player
             depth = 1
+            turn = 0
             while True:
+                turn += 1
                 if player == ai:
 
                     ply = self._ai_move(depth)
-                    print(f"AI playing column ({ply[0] + 1}, {ply[1]})...")
-                    self._play(ply[0], player)
+                    print(f"AI playing column {ply+1}...")
+                    self._play(ply, player)
                     print(self)
                     if self._four_in_a_row(player):
                         print(f"AI won the game.")
                         break
                 else:
-                    ply = int(input("Please chose the column of your move: ")) - 1
+                    ply = Connect4.cleaned_input()
                     print(f"You played column {ply + 1}.")
                     self._play(ply, player)
                     print(self)
@@ -216,14 +230,14 @@ class Connect4:
                         break
 
                 player = -player
-                if depth < 4:
-                    depth += 1
+                if (turn % 4 == 0) and depth < 4:
+                    depth *= 2
 
             print("Terminating game")
 
     def _ai_move(self, depth):
         # in the first level of recursion, the move parameter of minmax won't be used
-        return self._minmax(None, depth, self._player2, -np.inf, np.inf)
+        return self._minmax(None, depth, self._player2, -np.inf, np.inf)[0]
 
     def _minmax(self, move, depth, player, alpha, beta):
         """
@@ -285,7 +299,7 @@ class Connect4:
                         print(f"AI won the game.")
                         break
                 else:
-                    ply = int(input("Please chose the column of your move: ")) - 1
+                    ply = Connect4.cleaned_input()
                     print(f"You played column {ply + 1}.")
                     self._play(ply, player)
                     print(self)
