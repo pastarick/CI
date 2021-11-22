@@ -5,6 +5,7 @@ from TreeNode import TreeNode
 class Connect4:
     """
     This class encapsulates a connect-4 minmax solver (against user or possibly against itself)
+    and a Monte Carlo Tree Search solver
     """
     __NUM_COLUMNS = 7
     __COLUMN_HEIGHT = 6
@@ -171,18 +172,12 @@ class Connect4:
         i += 3
         j += 3
 
-        # value = 0
-        # value = 0  # can init to 0 because value is always >= 0
-
         values = dict.fromkeys(self.__DIRECTIONS.keys(), (0, 0))
 
         for d in self.__valid_directions(tmp_board, i, j):
-            # value = max(value, self.__count_vec(self.__DIRECTIONS_ARRAYS[d](i, j, tmp_board), player))
-            # v is the tuple (score, player of that array)
             v = self.__count_vec2(self.__DIRECTIONS_ARRAYS[d](i, j, tmp_board), player)
             if v[0] == 4:
                 return 25
-            # value += v
             values[d] = v
 
         value = values["l"][0]
@@ -194,7 +189,7 @@ class Connect4:
                     value += values[d][0] + values[od][0] - 1
             value += values[d][0] + values[od][0]
 
-        return value  # + self.__EVALUATION_TABLE[i-3, j-3]
+        return value
 
     """
     MinMax algorithm
@@ -234,9 +229,8 @@ class Connect4:
                         break
 
                 player = -player
-                # if depth < 4:
-                #     depth += 1
-                depth = 2
+                if depth < 4:
+                    depth += 1
 
             print("Terminating game")
 
@@ -253,13 +247,11 @@ class Connect4:
             cell = (move, index)
             # if current player is -1, this means that the top-of-the-stack call was made by player 1
             # -> return score with opposite sign
-            return move, -player * self.__cell_value(cell)  # int(player * utility(board, cell))
+            return move, -player * self.__cell_value(cell)
 
-        # print(f"depth = {depth}")
         if player == self.__player2:
             v1 = (None, np.inf)
             for m in self.__valid_moves():
-                # alpha = min(alpha, minmax(board, m, depth-1, -player))
                 self.__play(m, player)
                 _, v2 = self.__minmax(m, depth - 1, -player, alpha, beta)
                 self.__take_back(m)
@@ -272,7 +264,6 @@ class Connect4:
         else:
             v1 = (None, -np.inf)
             for m in self.__valid_moves():
-                # alpha = max(alpha, minmax(board, m, depth-1, -player))
                 self.__play(m, player)
                 _, v2 = self.__minmax(m, depth - 1, -player, alpha, beta)
                 self.__take_back(m)
