@@ -28,7 +28,6 @@ class TreeNode:
         self._visits = 0
         self._wins = 0
         self._children = {}
-        # self._possible_moves = TreeNode._valid_moves()
         self._player = player
 
     @staticmethod
@@ -82,8 +81,7 @@ class TreeNode:
 
     @staticmethod
     def _terminal(player):
-        # if not self._possible_moves:  # terminal: draw
-        if not TreeNode._valid_moves():
+        if not TreeNode._valid_moves():  # terminal: draw
             return 0
         elif TreeNode._four_in_a_row(player):  # terminal: ‘player‘ wins
             return player
@@ -99,24 +97,21 @@ class TreeNode:
     def wins(self):
         return self._wins
 
-    def select_child(self):
+    def select_child(self, c):
         # in self._children there are only the children visited at least once
-        c_param = 0.
         log_p = np.log(self._visits)
-        rank = {c: (n.visits()-n.wins())/n.visits() + np.sqrt(c_param*log_p/n.visits()) for c, n in self._children.items()}
+        rank = {ch: (n.visits()-n.wins())/n.visits() + np.sqrt(c*log_p/n.visits()) for ch, n in self._children.items()}
         return max(rank, key=rank.get)
 
     def tree_walk(self):
-        # obs: with this algorithm, at every level either a node is leaf or all of its children have been simulated (at
-        # least) once
+        # obs: with this algorithm, at every level either a node is leaf or all of its children have been visited at
+        # lest once
         if not self._is_leaf():
             # use tree policy to go down until a leaf
             # choose best child: SELECTION phase
-            child = self._children[self.select_child()]
+            child = self._children[self.select_child(0.01)]
             child.tree_walk()
         else:  # leaf: breadth exploration of next generation of nodes
-            # obs: in theory, it's possible to have a situation in which current node arrives here, since it's leaf
-            # of the explored tree, and the node is also leaf of the game tree (i.e. it doesn't have possible moves)
             r = self._terminal(self._player)
             if r is not None:
                 # if there is a win/draw/loss
@@ -125,16 +120,13 @@ class TreeNode:
             for move in TreeNode._valid_moves():
                 self._children[move] = TreeNode(-self._player, parent=self)
                 TreeNode._play(move, self._player)
-                # self._possible_moves = TreeNode._valid_moves()
                 # don't need to store the returned value as the
-                # function backpropagate already has updated counters until root
+                # function ‘backpropagate‘ already has updated counters until root
                 self._children[move].random_walk()
                 # after this call, ch is a discovered node and all its counters and its predecessors' counters
                 # have been updated
-                # backtrack last played move and try the next one (i.e. try a new child of current (leaf) node)
+                # backtrack last played move and try the next one
                 TreeNode._take_back(move)
-                # update possible moves pool to keep consistency
-                # self._possible_moves = TreeNode._valid_moves()
 
         # don't need to return anything since at this point all of the children of a leaf of explored tree have been
         # explored
@@ -143,28 +135,23 @@ class TreeNode:
         """
         Default policy: for unexpanded nodes, go random until terminal state
         """
-        # this method is called on newly created node: r is the value for this specific node in the tree
         # Enter this method after self._node_player played a move ->
         # -> first move played by this function is by -self._node_player
         history = []
         player = -self._player
         while True:
-            # m = np.random.choice(self._possible_moves)
             m = np.random.choice(TreeNode._valid_moves())
-            # insert in head for easy reverse looping
-            history.insert(0, m)
+            history.append(m)
             TreeNode._play(m, player)
-            # self._possible_moves = TreeNode._valid_moves()
             r = self._terminal(player)
             if r is not None:
                 break
             player = -player
 
         # backtrack every random move
-        for move in history:
+        for move in reversed(history):
             TreeNode._take_back(move)
 
-        # self._possible_moves = TreeNode._valid_moves()
         self.backpropagate(r)
         return r
 
@@ -177,24 +164,19 @@ class TreeNode:
         if self.parent:
             self.parent.backpropagate(result)
 
-    # exposed method: called only on current root (i.e. stable state)
+    # called only on current root (i.e. stable state)
     def next_action(self):
         simulations = 50
         for _ in range(simulations):
             self.tree_walk()
-            # at the end of tree_walk, all counters are up to date and the first generation of child nodes of the most
-            # promising nodes have been explored
 
-        ch_visits = {c: n.visits() for c, n in self._children.items()}
-        # return max(ch_visits, key=ch_visits.get)
-        return self.select_child()
+        return self.select_child(0)
 
     def trim(self, action):
         """
-        This function returns the new root. In fact, at a certain AI turn, after the AI has played its move, it's
-        useless to keep track of the untaken moves for that turn in the explored tree. The same is for the user's turn
+        This function returns the new root: don't keep track of the untaken moves in the explored tree.
         """
-        # action is actually a child of self
+        # action corresponds to a child of self
         for c, n in self._children.items():
             if c != action:
                 del n
@@ -268,8 +250,7 @@ def four_in_a_row(board, player):
 
 def main():
     # in main, every time AI plays its move and the user replies to him, root changes and becomes the new stable state
-    # after user move
-    # -> root's player is always AI
+    # after user move -> root's player is always AI
     board = np.zeros((NUM_COLUMNS, COLUMN_HEIGHT), dtype=np.byte)
     print_board(board)
 
